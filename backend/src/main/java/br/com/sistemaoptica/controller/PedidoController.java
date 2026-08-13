@@ -28,7 +28,7 @@ import java.net.URI;
 
 @RestController
 @RequestMapping("/pedidos")
-@Tag(name = "Pedidos", description = "Criação e acompanhamento dos pedidos do laboratório")
+@Tag(name = "Ordens de serviço", description = "Registro e acompanhamento das ordens de serviço do laboratório óptico")
 public class PedidoController {
 
     private final PedidoService pedidoService;
@@ -36,14 +36,14 @@ public class PedidoController {
     public PedidoController(PedidoService pedidoService) { this.pedidoService = pedidoService; }
 
     @PostMapping
-    @Operation(summary = "Criar pedido e calcular o valor total")
+    @Operation(summary = "Registrar uma nova ordem de serviço")
     public ResponseEntity<PedidoResponse> criar(@Valid @RequestBody PedidoRequest request) {
         PedidoResponse pedido = pedidoService.criar(request);
         return ResponseEntity.created(URI.create("/pedidos/" + pedido.id())).body(pedido);
     }
 
     @GetMapping
-    @Operation(summary = "Listar ou filtrar pedidos")
+    @Operation(summary = "Listar ou filtrar ordens de serviço")
     public PaginaResponse<PedidoResponse> listar(
             @RequestParam(required = false) StatusPedido status,
             @RequestParam(required = false) String cliente,
@@ -51,17 +51,17 @@ public class PedidoController {
     ) { return pedidoService.listar(status, cliente, pageable); }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Buscar pedido por ID")
+    @Operation(summary = "Buscar ordem de serviço por ID")
     public PedidoResponse buscar(@PathVariable Long id) { return pedidoService.buscarPorId(id); }
 
     @PatchMapping("/{id}/status")
-    @Operation(summary = "Atualizar o status do pedido")
+    @Operation(summary = "Atualizar o status da ordem de serviço")
     public PedidoResponse atualizarStatus(@PathVariable Long id, @Valid @RequestBody StatusPedidoRequest request) {
         return pedidoService.atualizarStatus(id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Excluir pedido cancelado")
+    @Operation(summary = "Excluir ordem de serviço cancelada")
     public void excluir(@PathVariable Long id) { pedidoService.excluir(id); }
 }
