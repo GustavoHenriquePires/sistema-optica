@@ -120,12 +120,14 @@ class PedidoControllerIntegrationTest {
     }
 
     @Test
-    void naoDeveCriarPedidoSemEstoqueOuSemItens() throws Exception {
+    void deveCriarOsTecnicaSemItensEValidarEstoqueQuandoHouverProduto() throws Exception {
         mockMvc.perform(post("/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"clienteId\":" + cliente.getId() + ",\"itens\":[]}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.itens").exists());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.numeroOs").value(org.hamcrest.Matchers.startsWith("OS-")))
+                .andExpect(jsonPath("$.itens").isEmpty())
+                .andExpect(jsonPath("$.valorTotal").value(0));
 
         mockMvc.perform(post("/pedidos")
                         .contentType(MediaType.APPLICATION_JSON)
