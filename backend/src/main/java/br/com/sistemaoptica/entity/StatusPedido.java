@@ -2,11 +2,7 @@ package br.com.sistemaoptica.entity;
 
 public enum StatusPedido {
     RECEBIDO,
-    CONFERENCIA,
-    SURFACAGEM,
-    TRATAMENTO,
-    MONTAGEM,
-    CONTROLE_QUALIDADE,
+    EM_PRODUCAO,
     PRONTO,
     ENTREGUE,
     CANCELADO
