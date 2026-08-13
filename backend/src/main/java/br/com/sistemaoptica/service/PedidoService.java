@@ -10,6 +10,7 @@ import br.com.sistemaoptica.dto.pedido.StatusPedidoRequest;
 import br.com.sistemaoptica.entity.Cliente;
 import br.com.sistemaoptica.entity.ItemPedido;
 import br.com.sistemaoptica.entity.Pedido;
+import br.com.sistemaoptica.entity.PrioridadeOrdemServico;
 import br.com.sistemaoptica.entity.Produto;
 import br.com.sistemaoptica.entity.StatusPedido;
 import br.com.sistemaoptica.exception.RecursoNaoEncontradoException;
@@ -56,6 +57,23 @@ public class PedidoService {
         pedido.setDataPrevisao(request.dataPrevisao());
         pedido.setObservacoes(normalizarOpcional(request.observacoes()));
         pedido.setStatus(StatusPedido.RECEBIDO);
+        pedido.setPrioridade(request.prioridade() == null ? PrioridadeOrdemServico.NORMAL : request.prioridade());
+        pedido.setOdEsferico(request.odEsferico());
+        pedido.setOdCilindrico(request.odCilindrico());
+        pedido.setOdEixo(request.odEixo());
+        pedido.setOdAdicao(request.odAdicao());
+        pedido.setOdDnp(request.odDnp());
+        pedido.setOdAltura(request.odAltura());
+        pedido.setOeEsferico(request.oeEsferico());
+        pedido.setOeCilindrico(request.oeCilindrico());
+        pedido.setOeEixo(request.oeEixo());
+        pedido.setOeAdicao(request.oeAdicao());
+        pedido.setOeDnp(request.oeDnp());
+        pedido.setOeAltura(request.oeAltura());
+        pedido.setTipoLente(normalizarOpcional(request.tipoLente()));
+        pedido.setMaterialLente(normalizarOpcional(request.materialLente()));
+        pedido.setTratamento(normalizarOpcional(request.tratamento()));
+        pedido.setArmacao(normalizarOpcional(request.armacao()));
 
         Map<Long, Integer> quantidades = agruparQuantidades(request);
         BigDecimal total = BigDecimal.ZERO;
@@ -80,9 +98,7 @@ public class PedidoService {
     @Transactional
     public PedidoResponse atualizarStatus(Long id, StatusPedidoRequest request) {
         Pedido pedido = buscarEntidade(id);
-        if (pedido.getStatus() == request.status()) {
-            return toResponse(pedido);
-        }
+        if (pedido.getStatus() == request.status()) return toResponse(pedido);
         validarTransicao(pedido.getStatus(), request.status());
 
         if (request.status() == StatusPedido.CANCELADO) {
@@ -110,6 +126,7 @@ public class PedidoService {
 
     private Map<Long, Integer> agruparQuantidades(PedidoRequest request) {
         Map<Long, Integer> quantidades = new HashMap<>();
+        if (request.itens() == null) return quantidades;
         for (ItemPedidoRequest item : request.itens()) {
             quantidades.merge(item.produtoId(), item.quantidade(), Integer::sum);
         }
@@ -153,8 +170,11 @@ public class PedidoService {
                 item.getId(), item.getProduto().getId(), item.getProduto().getNome(), item.getQuantidade(), item.getPrecoUnitario(), item.getSubtotal()
         )).toList();
         return new PedidoResponse(
-                pedido.getId(), clienteResponse, itens, pedido.getValorTotal(), pedido.getStatus(),
-                pedido.getDataPedido(), pedido.getDataPrevisao(), pedido.getObservacoes()
+                pedido.getId(), "OS-" + String.format("%06d", pedido.getId()), clienteResponse, itens,
+                pedido.getValorTotal(), pedido.getStatus(), pedido.getPrioridade(), pedido.getDataPedido(), pedido.getDataPrevisao(),
+                pedido.getOdEsferico(), pedido.getOdCilindrico(), pedido.getOdEixo(), pedido.getOdAdicao(), pedido.getOdDnp(), pedido.getOdAltura(),
+                pedido.getOeEsferico(), pedido.getOeCilindrico(), pedido.getOeEixo(), pedido.getOeAdicao(), pedido.getOeDnp(), pedido.getOeAltura(),
+                pedido.getTipoLente(), pedido.getMaterialLente(), pedido.getTratamento(), pedido.getArmacao(), pedido.getObservacoes()
         );
     }
 }
