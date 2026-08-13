@@ -73,7 +73,24 @@ export function PedidosPage() {
     }
   }, [page, search, status]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    let active = true;
+    listarPedidos({ cliente: search, status, page, size: 10 })
+      .then((result) => {
+        if (!active) return;
+        setData(result);
+        setError(null);
+      })
+      .catch((caught: unknown) => {
+        if (!active) return;
+        setError(caught instanceof Error ? caught.message : "Não foi possível carregar as ordens de serviço.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, [page, search, status]);
+
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 3500);
@@ -163,6 +180,7 @@ export function PedidosPage() {
           <form
             onSubmit={(event) => {
               event.preventDefault();
+              setLoading(true);
               setPage(0);
               setSearch(searchInput.trim());
             }}
@@ -174,7 +192,7 @@ export function PedidosPage() {
             </label>
             <button className="h-11 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700">Buscar</button>
           </form>
-          <select value={status} onChange={(e) => { setStatus(e.target.value as StatusPedido | ""); setPage(0); }} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700">
+          <select value={status} onChange={(e) => { setLoading(true); setStatus(e.target.value as StatusPedido | ""); setPage(0); }} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700">
             <option value="">Todos os status</option>
             {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
@@ -206,7 +224,7 @@ export function PedidosPage() {
             </div>
             <div className="flex items-center justify-between border-t border-slate-100 px-5 py-4">
               <p className="text-xs text-slate-500">{data.totalElements} ordem(ns) de serviço</p>
-              <div className="flex items-center gap-2"><button disabled={data.first} onClick={() => setPage(page - 1)} className="grid size-9 place-items-center rounded-lg border border-slate-200 disabled:opacity-40"><ChevronLeft className="size-4" /></button><span className="text-sm font-semibold">{page + 1}</span><button disabled={data.last} onClick={() => setPage(page + 1)} className="grid size-9 place-items-center rounded-lg border border-slate-200 disabled:opacity-40"><ChevronRight className="size-4" /></button></div>
+              <div className="flex items-center gap-2"><button disabled={data.first} onClick={() => { setLoading(true); setPage(page - 1); }} className="grid size-9 place-items-center rounded-lg border border-slate-200 disabled:opacity-40"><ChevronLeft className="size-4" /></button><span className="text-sm font-semibold">{page + 1}</span><button disabled={data.last} onClick={() => { setLoading(true); setPage(page + 1); }} className="grid size-9 place-items-center rounded-lg border border-slate-200 disabled:opacity-40"><ChevronRight className="size-4" /></button></div>
             </div>
           </>
         ) : <Empty />}
