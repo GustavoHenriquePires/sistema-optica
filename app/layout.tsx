@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sistema Óptica",
-  description: "Gestão profissional para ópticas e laboratórios ópticos.",
+  title: "Sistema de OS | Laboratório Óptico",
+  description: "Gestão de ordens de serviço, produção e dados ópticos para laboratório óptico.",
   other: {
     "codex-preview": "development",
   },
@@ -35,9 +35,7 @@ export default async function RootLayout({
 
   return (
     <html lang="pt-BR">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AdminShell userName={authenticatedUser?.displayName ?? "Usuário do sistema"}>
           {children}
         </AdminShell>
