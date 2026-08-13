@@ -1,6 +1,7 @@
 import type { Cliente } from "@/types/cliente";
 
 export type StatusPedido = "RECEBIDO" | "EM_PRODUCAO" | "PRONTO" | "ENTREGUE" | "CANCELADO";
+export type PrioridadeOrdemServico = "NORMAL" | "URGENTE";
 
 export interface ItemPedido {
   id: number;
@@ -13,12 +14,30 @@ export interface ItemPedido {
 
 export interface Pedido {
   id: number;
+  numeroOs?: string;
   cliente: Cliente;
   itens: ItemPedido[];
   valorTotal: number;
   status: StatusPedido;
+  prioridade?: PrioridadeOrdemServico;
   dataPedido: string;
   dataPrevisao: string | null;
+  odEsferico?: number | null;
+  odCilindrico?: number | null;
+  odEixo?: number | null;
+  odAdicao?: number | null;
+  odDnp?: number | null;
+  odAltura?: number | null;
+  oeEsferico?: number | null;
+  oeCilindrico?: number | null;
+  oeEixo?: number | null;
+  oeAdicao?: number | null;
+  oeDnp?: number | null;
+  oeAltura?: number | null;
+  tipoLente?: string | null;
+  materialLente?: string | null;
+  tratamento?: string | null;
+  armacao?: string | null;
   observacoes: string | null;
 }
 
@@ -26,6 +45,23 @@ export interface PedidoRequest {
   clienteId: number;
   itens: Array<{ produtoId: number; quantidade: number }>;
   dataPrevisao: string | null;
+  prioridade?: PrioridadeOrdemServico;
+  odEsferico?: number | null;
+  odCilindrico?: number | null;
+  odEixo?: number | null;
+  odAdicao?: number | null;
+  odDnp?: number | null;
+  odAltura?: number | null;
+  oeEsferico?: number | null;
+  oeCilindrico?: number | null;
+  oeEixo?: number | null;
+  oeAdicao?: number | null;
+  oeDnp?: number | null;
+  oeAltura?: number | null;
+  tipoLente?: string;
+  materialLente?: string;
+  tratamento?: string;
+  armacao?: string;
   observacoes: string;
 }
 
