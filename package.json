@@ -1,6 +1,6 @@
 {
-  "name": "sistema-optica-gustavo",
-  "displayName": "Sistema Óptica",
+  "name": "sistema-os-laboratorio",
+  "displayName": "Sistema de OS - Laboratório Óptico",
   "version": "0.1.0",
   "private": true,
   "engines": {
