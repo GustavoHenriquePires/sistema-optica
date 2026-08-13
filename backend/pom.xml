@@ -14,8 +14,8 @@
     <groupId>br.com.sistemaoptica</groupId>
     <artifactId>sistema-optica-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>Sistema Óptica - Backend</name>
-    <description>API para gestão de ópticas e laboratórios ópticos</description>
+    <name>Sistema de OS - Backend</name>
+    <description>API para gestão de ordens de serviço de laboratório óptico</description>
 
     <properties>
         <java.version>21</java.version>
