@@ -1,6 +1,8 @@
 package br.com.sistemaoptica.controller;
 
 import br.com.sistemaoptica.dto.common.PaginaResponse;
+import br.com.sistemaoptica.dto.pedido.EtapaPedidoRequest;
+import br.com.sistemaoptica.dto.pedido.HistoricoStatusResponse;
 import br.com.sistemaoptica.dto.pedido.PedidoRequest;
 import br.com.sistemaoptica.dto.pedido.PedidoResponse;
 import br.com.sistemaoptica.dto.pedido.StatusPedidoRequest;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/pedidos")
@@ -54,10 +57,22 @@ public class PedidoController {
     @Operation(summary = "Buscar ordem de serviço por ID")
     public PedidoResponse buscar(@PathVariable Long id) { return pedidoService.buscarPorId(id); }
 
+    @GetMapping("/{id}/historico")
+    @Operation(summary = "Consultar o histórico produtivo da ordem de serviço")
+    public List<HistoricoStatusResponse> historico(@PathVariable Long id) {
+        return pedidoService.listarHistorico(id);
+    }
+
     @PatchMapping("/{id}/status")
-    @Operation(summary = "Atualizar o status da ordem de serviço")
+    @Operation(summary = "Atualizar o status da ordem de serviço (compatibilidade)")
     public PedidoResponse atualizarStatus(@PathVariable Long id, @Valid @RequestBody StatusPedidoRequest request) {
         return pedidoService.atualizarStatus(id, request);
+    }
+
+    @PatchMapping("/{id}/etapa")
+    @Operation(summary = "Avançar a OS no fluxo produtivo registrando operador e observação")
+    public PedidoResponse avancarEtapa(@PathVariable Long id, @Valid @RequestBody EtapaPedidoRequest request) {
+        return pedidoService.avancarEtapa(id, request);
     }
 
     @DeleteMapping("/{id}")
