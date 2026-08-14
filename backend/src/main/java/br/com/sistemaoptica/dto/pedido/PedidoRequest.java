@@ -13,14 +13,11 @@ import java.time.LocalDate;
 import java.util.List;
 
 public record PedidoRequest(
-        @NotNull(message = "O cliente é obrigatório")
-        Long clienteId,
-
+        @NotNull(message = "O cliente é obrigatório") Long clienteId,
         List<@Valid ItemPedidoRequest> itens,
-
-        @FutureOrPresent(message = "A previsão de entrega não pode estar no passado")
-        LocalDate dataPrevisao,
-
+        List<@Valid LentePedidoRequest> lentes,
+        List<@Valid ServicoPedidoRequest> servicos,
+        @FutureOrPresent(message = "A previsão de entrega não pode estar no passado") LocalDate dataPrevisao,
         PrioridadeOrdemServico prioridade,
         BigDecimal odEsferico,
         BigDecimal odCilindrico,
@@ -38,8 +35,5 @@ public record PedidoRequest(
         @Size(max = 80) String materialLente,
         @Size(max = 120) String tratamento,
         @Size(max = 120) String armacao,
-
-        @Size(max = 1000, message = "As observações devem ter no máximo 1000 caracteres")
-        String observacoes
-) {
-}
+        @Size(max = 1000, message = "As observações devem ter no máximo 1000 caracteres") String observacoes
+) {}
