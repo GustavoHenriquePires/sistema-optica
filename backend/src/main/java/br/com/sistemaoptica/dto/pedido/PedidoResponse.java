@@ -14,6 +14,8 @@ public record PedidoResponse(
         String numeroOs,
         ClienteResponse cliente,
         List<ItemPedidoResponse> itens,
+        List<LentePedidoResponse> lentes,
+        List<ServicoPedidoResponse> servicos,
         BigDecimal valorTotal,
         StatusPedido status,
         PrioridadeOrdemServico prioridade,
@@ -36,5 +38,4 @@ public record PedidoResponse(
         String tratamento,
         String armacao,
         String observacoes
-) {
-}
+) {}
