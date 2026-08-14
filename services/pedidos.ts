@@ -2,7 +2,7 @@ import { apiRequest, queryString } from "@/services/api";
 import { DEMO_MODE } from "@/services/config";
 import { demoPedidosService } from "@/services/demo-pedidos";
 import type { PaginaResponse } from "@/types/api";
-import type { Pedido, PedidoListagemParams, PedidoRequest, StatusPedido } from "@/types/pedido";
+import type { HistoricoStatusPedido, Pedido, PedidoListagemParams, PedidoRequest, StatusPedido } from "@/types/pedido";
 
 export function listarPedidos(params: PedidoListagemParams = {}) {
   if (DEMO_MODE) return demoPedidosService.listar(params);
@@ -11,5 +11,13 @@ export function listarPedidos(params: PedidoListagemParams = {}) {
 export function buscarPedido(id: number) { if (DEMO_MODE) return demoPedidosService.buscar(id); return apiRequest<Pedido>(`/pedidos/${id}`); }
 export function criarPedido(request: PedidoRequest) { if (DEMO_MODE) return demoPedidosService.criar(request); return apiRequest<Pedido>("/pedidos", { method: "POST", body: JSON.stringify(request) }); }
 export function atualizarStatusPedido(id: number, status: StatusPedido) { if (DEMO_MODE) return demoPedidosService.atualizarStatus(id, status); return apiRequest<Pedido>(`/pedidos/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }); }
+export function avancarEtapaPedido(id: number, status: StatusPedido, usuario?: string, observacao?: string) {
+  if (DEMO_MODE) return demoPedidosService.atualizarStatus(id, status);
+  return apiRequest<Pedido>(`/pedidos/${id}/etapa`, { method: "PATCH", body: JSON.stringify({ status, usuario, observacao }) });
+}
+export function listarHistoricoPedido(id: number) {
+  if (DEMO_MODE) return Promise.resolve<HistoricoStatusPedido[]>([]);
+  return apiRequest<HistoricoStatusPedido[]>(`/pedidos/${id}/historico`);
+}
 export function excluirPedido(id: number) { if (DEMO_MODE) return demoPedidosService.excluir(id); return apiRequest<void>(`/pedidos/${id}`, { method: "DELETE" }); }
 export function resetarPedidosDemo() { return demoPedidosService.resetar(); }
