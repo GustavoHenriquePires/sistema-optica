@@ -2,6 +2,7 @@ package br.com.sistemaoptica.entity;
 
 public enum StatusPedido {
     RECEBIDO,
+    EM_PRODUCAO,
     AGUARDANDO_APROVACAO,
     AGUARDANDO_PAGAMENTO,
     DIGITADO,
