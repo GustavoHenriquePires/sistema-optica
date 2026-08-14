@@ -2,12 +2,15 @@ package br.com.sistemaoptica.service;
 
 import br.com.sistemaoptica.dto.cliente.ClienteResponse;
 import br.com.sistemaoptica.dto.common.PaginaResponse;
+import br.com.sistemaoptica.dto.pedido.EtapaPedidoRequest;
+import br.com.sistemaoptica.dto.pedido.HistoricoStatusResponse;
 import br.com.sistemaoptica.dto.pedido.ItemPedidoRequest;
 import br.com.sistemaoptica.dto.pedido.ItemPedidoResponse;
 import br.com.sistemaoptica.dto.pedido.PedidoRequest;
 import br.com.sistemaoptica.dto.pedido.PedidoResponse;
 import br.com.sistemaoptica.dto.pedido.StatusPedidoRequest;
 import br.com.sistemaoptica.entity.Cliente;
+import br.com.sistemaoptica.entity.HistoricoStatusPedido;
 import br.com.sistemaoptica.entity.ItemPedido;
 import br.com.sistemaoptica.entity.Pedido;
 import br.com.sistemaoptica.entity.PrioridadeOrdemServico;
@@ -15,6 +18,7 @@ import br.com.sistemaoptica.entity.Produto;
 import br.com.sistemaoptica.entity.StatusPedido;
 import br.com.sistemaoptica.exception.RecursoNaoEncontradoException;
 import br.com.sistemaoptica.exception.RegraNegocioException;
+import br.com.sistemaoptica.repository.HistoricoStatusPedidoRepository;
 import br.com.sistemaoptica.repository.PedidoRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,17 +27,23 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
 public class PedidoService {
 
     private final PedidoRepository pedidoRepository;
+    private final HistoricoStatusPedidoRepository historicoRepository;
     private final ClienteService clienteService;
     private final ProdutoService produtoService;
 
-    public PedidoService(PedidoRepository pedidoRepository, ClienteService clienteService, ProdutoService produtoService) {
+    public PedidoService(PedidoRepository pedidoRepository,
+                         HistoricoStatusPedidoRepository historicoRepository,
+                         ClienteService clienteService,
+                         ProdutoService produtoService) {
         this.pedidoRepository = pedidoRepository;
+        this.historicoRepository = historicoRepository;
         this.clienteService = clienteService;
         this.produtoService = produtoService;
     }
@@ -47,6 +57,14 @@ public class PedidoService {
     @Transactional(readOnly = true)
     public PedidoResponse buscarPorId(Long id) {
         return toResponse(buscarEntidade(id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<HistoricoStatusResponse> listarHistorico(Long id) {
+        buscarEntidade(id);
+        return historicoRepository.findByPedidoIdOrderByDataHoraAsc(id).stream()
+                .map(h -> new HistoricoStatusResponse(h.getId(), h.getStatusAnterior(), h.getStatusNovo(), h.getUsuario(), h.getObservacao(), h.getDataHora()))
+                .toList();
     }
 
     @Transactional
@@ -92,22 +110,30 @@ public class PedidoService {
             produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() - entrada.getValue());
         }
         pedido.setValorTotal(total);
-        return toResponse(pedidoRepository.save(pedido));
+        Pedido salvo = pedidoRepository.save(pedido);
+        registrarHistorico(salvo, null, StatusPedido.RECEBIDO, "sistema", "OS registrada");
+        return toResponse(salvo);
     }
 
     @Transactional
     public PedidoResponse atualizarStatus(Long id, StatusPedidoRequest request) {
-        Pedido pedido = buscarEntidade(id);
-        if (pedido.getStatus() == request.status()) return toResponse(pedido);
-        validarTransicao(pedido.getStatus(), request.status());
+        return avancarEtapa(id, new EtapaPedidoRequest(request.status(), "sistema", null));
+    }
 
-        if (request.status() == StatusPedido.CANCELADO) {
-            pedido.getItens().forEach(item -> item.getProduto().setQuantidadeEstoque(
-                    item.getProduto().getQuantidadeEstoque() + item.getQuantidade()
-            ));
-        }
-        pedido.setStatus(request.status());
-        return toResponse(pedidoRepository.save(pedido));
+    @Transactional
+    public PedidoResponse avancarEtapa(Long id, EtapaPedidoRequest request) {
+        Pedido pedido = buscarEntidade(id);
+        StatusPedido atual = pedido.getStatus();
+        StatusPedido novo = request.status();
+        if (atual == novo) return toResponse(pedido);
+
+        validarTransicao(atual, novo);
+        if (novo == StatusPedido.CANCELADO) devolverEstoque(pedido);
+
+        pedido.setStatus(novo);
+        Pedido salvo = pedidoRepository.save(pedido);
+        registrarHistorico(salvo, atual, novo, normalizarOpcional(request.usuario()), normalizarOpcional(request.observacao()));
+        return toResponse(salvo);
     }
 
     @Transactional
@@ -122,6 +148,22 @@ public class PedidoService {
     public Pedido buscarEntidade(Long id) {
         return pedidoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pedido não encontrado com o ID " + id));
+    }
+
+    private void registrarHistorico(Pedido pedido, StatusPedido anterior, StatusPedido novo, String usuario, String observacao) {
+        HistoricoStatusPedido h = new HistoricoStatusPedido();
+        h.setPedido(pedido);
+        h.setStatusAnterior(anterior);
+        h.setStatusNovo(novo);
+        h.setUsuario(usuario == null ? "sistema" : usuario);
+        h.setObservacao(observacao);
+        historicoRepository.save(h);
+    }
+
+    private void devolverEstoque(Pedido pedido) {
+        pedido.getItens().forEach(item -> item.getProduto().setQuantidadeEstoque(
+                item.getProduto().getQuantidadeEstoque() + item.getQuantidade()
+        ));
     }
 
     private Map<Long, Integer> agruparQuantidades(PedidoRequest request) {
@@ -145,12 +187,31 @@ public class PedidoService {
         if (atual == StatusPedido.CANCELADO || atual == StatusPedido.ENTREGUE) {
             throw new RegraNegocioException("Pedidos finalizados não podem mudar de status");
         }
-        if (novo == StatusPedido.CANCELADO) return;
+        if (novo == StatusPedido.CANCELADO || novo == StatusPedido.RETRABALHO) return;
+        if (atual == StatusPedido.RETRABALHO) return;
 
-        Map<StatusPedido, EnumSet<StatusPedido>> permitidos = Map.of(
-                StatusPedido.RECEBIDO, EnumSet.of(StatusPedido.EM_PRODUCAO),
-                StatusPedido.EM_PRODUCAO, EnumSet.of(StatusPedido.PRONTO),
-                StatusPedido.PRONTO, EnumSet.of(StatusPedido.ENTREGUE)
+        Map<StatusPedido, EnumSet<StatusPedido>> permitidos = Map.ofEntries(
+                Map.entry(StatusPedido.RECEBIDO, EnumSet.of(StatusPedido.EM_PRODUCAO, StatusPedido.AGUARDANDO_APROVACAO, StatusPedido.DIGITADO, StatusPedido.SEPARACAO)),
+                Map.entry(StatusPedido.EM_PRODUCAO, EnumSet.of(StatusPedido.SEPARACAO, StatusPedido.PRONTO)),
+                Map.entry(StatusPedido.AGUARDANDO_APROVACAO, EnumSet.of(StatusPedido.AGUARDANDO_PAGAMENTO, StatusPedido.DIGITADO)),
+                Map.entry(StatusPedido.AGUARDANDO_PAGAMENTO, EnumSet.of(StatusPedido.DIGITADO)),
+                Map.entry(StatusPedido.DIGITADO, EnumSet.of(StatusPedido.IMPRESSO, StatusPedido.ESTOQUE, StatusPedido.SEPARACAO)),
+                Map.entry(StatusPedido.IMPRESSO, EnumSet.of(StatusPedido.ESTOQUE, StatusPedido.SEPARACAO)),
+                Map.entry(StatusPedido.ESTOQUE, EnumSet.of(StatusPedido.SEPARACAO, StatusPedido.SURFACAGEM_F5, StatusPedido.SURFACAGEM_FREEFORM, StatusPedido.CORTE)),
+                Map.entry(StatusPedido.SEPARACAO, EnumSet.of(StatusPedido.SURFACAGEM_F5, StatusPedido.SURFACAGEM_FREEFORM, StatusPedido.ANTI_RISCO_SPIN, StatusPedido.COLORACAO, StatusPedido.TRATAMENTO, StatusPedido.CORTE, StatusPedido.MONTAGEM)),
+                Map.entry(StatusPedido.SURFACAGEM_F5, EnumSet.of(StatusPedido.ANTI_RISCO_SPIN, StatusPedido.COLORACAO, StatusPedido.TRATAMENTO, StatusPedido.CORTE)),
+                Map.entry(StatusPedido.SURFACAGEM_FREEFORM, EnumSet.of(StatusPedido.ANTI_RISCO_SPIN, StatusPedido.COLORACAO, StatusPedido.TRATAMENTO, StatusPedido.CORTE, StatusPedido.GRAVACAO)),
+                Map.entry(StatusPedido.ANTI_RISCO_SPIN, EnumSet.of(StatusPedido.COLORACAO, StatusPedido.TRATAMENTO, StatusPedido.CORTE)),
+                Map.entry(StatusPedido.COLORACAO, EnumSet.of(StatusPedido.ANTI_RISCO, StatusPedido.TRATAMENTO, StatusPedido.CORTE)),
+                Map.entry(StatusPedido.ANTI_RISCO, EnumSet.of(StatusPedido.TRATAMENTO, StatusPedido.CORTE)),
+                Map.entry(StatusPedido.TRATAMENTO, EnumSet.of(StatusPedido.CORTE, StatusPedido.GRAVACAO, StatusPedido.MONTAGEM)),
+                Map.entry(StatusPedido.CORTE, EnumSet.of(StatusPedido.GRAVACAO, StatusPedido.MONTAGEM, StatusPedido.CONTROLE_QUALIDADE)),
+                Map.entry(StatusPedido.GRAVACAO, EnumSet.of(StatusPedido.MONTAGEM, StatusPedido.CONTROLE_QUALIDADE)),
+                Map.entry(StatusPedido.MONTAGEM, EnumSet.of(StatusPedido.CONTROLE_QUALIDADE, StatusPedido.DISTRIBUICAO)),
+                Map.entry(StatusPedido.CONTROLE_QUALIDADE, EnumSet.of(StatusPedido.DISTRIBUICAO, StatusPedido.PRONTO)),
+                Map.entry(StatusPedido.DISTRIBUICAO, EnumSet.of(StatusPedido.FINANCEIRO, StatusPedido.PRONTO, StatusPedido.ENTREGUE)),
+                Map.entry(StatusPedido.FINANCEIRO, EnumSet.of(StatusPedido.PRONTO, StatusPedido.ENTREGUE)),
+                Map.entry(StatusPedido.PRONTO, EnumSet.of(StatusPedido.ENTREGUE))
         );
         if (!permitidos.getOrDefault(atual, EnumSet.noneOf(StatusPedido.class)).contains(novo)) {
             throw new RegraNegocioException("Transição de status inválida: " + atual + " para " + novo);
