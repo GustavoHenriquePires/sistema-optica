@@ -1,6 +1,31 @@
 import type { Cliente } from "@/types/cliente";
 
-export type StatusPedido = "RECEBIDO" | "EM_PRODUCAO" | "PRONTO" | "ENTREGUE" | "CANCELADO";
+export type StatusPedido =
+  | "RECEBIDO"
+  | "EM_PRODUCAO"
+  | "AGUARDANDO_APROVACAO"
+  | "AGUARDANDO_PAGAMENTO"
+  | "DIGITADO"
+  | "IMPRESSO"
+  | "ESTOQUE"
+  | "SEPARACAO"
+  | "SURFACAGEM_F5"
+  | "SURFACAGEM_FREEFORM"
+  | "ANTI_RISCO_SPIN"
+  | "COLORACAO"
+  | "ANTI_RISCO"
+  | "TRATAMENTO"
+  | "CORTE"
+  | "GRAVACAO"
+  | "MONTAGEM"
+  | "CONTROLE_QUALIDADE"
+  | "DISTRIBUICAO"
+  | "FINANCEIRO"
+  | "PRONTO"
+  | "ENTREGUE"
+  | "RETRABALHO"
+  | "CANCELADO";
+
 export type PrioridadeOrdemServico = "NORMAL" | "URGENTE";
 
 export interface ItemPedido {
@@ -10,6 +35,15 @@ export interface ItemPedido {
   quantidade: number;
   precoUnitario: number;
   subtotal: number;
+}
+
+export interface HistoricoStatusPedido {
+  id: number;
+  statusAnterior: StatusPedido | null;
+  statusNovo: StatusPedido;
+  usuario: string | null;
+  observacao: string | null;
+  dataHora: string;
 }
 
 export interface Pedido {
@@ -76,13 +110,49 @@ export interface PedidoListagemParams {
 export const statusLabels: Record<StatusPedido, string> = {
   RECEBIDO: "Recebido",
   EM_PRODUCAO: "Em produção",
+  AGUARDANDO_APROVACAO: "Aguardando aprovação",
+  AGUARDANDO_PAGAMENTO: "Aguardando pagamento",
+  DIGITADO: "Digitado",
+  IMPRESSO: "Impresso",
+  ESTOQUE: "Estoque",
+  SEPARACAO: "Separação",
+  SURFACAGEM_F5: "Surfaçagem F5",
+  SURFACAGEM_FREEFORM: "Surfaçagem FreeForm",
+  ANTI_RISCO_SPIN: "Anti-risco SPIN",
+  COLORACAO: "Coloração",
+  ANTI_RISCO: "Anti-risco",
+  TRATAMENTO: "Tratamento",
+  CORTE: "Corte",
+  GRAVACAO: "Gravação",
+  MONTAGEM: "Montagem",
+  CONTROLE_QUALIDADE: "Controle de qualidade",
+  DISTRIBUICAO: "Distribuição",
+  FINANCEIRO: "Financeiro",
   PRONTO: "Pronto",
   ENTREGUE: "Entregue",
+  RETRABALHO: "Retrabalho",
   CANCELADO: "Cancelado",
 };
 
 export const nextStatus: Partial<Record<StatusPedido, StatusPedido>> = {
-  RECEBIDO: "EM_PRODUCAO",
-  EM_PRODUCAO: "PRONTO",
+  RECEBIDO: "SEPARACAO",
+  EM_PRODUCAO: "SEPARACAO",
+  DIGITADO: "SEPARACAO",
+  IMPRESSO: "SEPARACAO",
+  ESTOQUE: "SEPARACAO",
+  SEPARACAO: "SURFACAGEM_FREEFORM",
+  SURFACAGEM_F5: "TRATAMENTO",
+  SURFACAGEM_FREEFORM: "TRATAMENTO",
+  ANTI_RISCO_SPIN: "TRATAMENTO",
+  COLORACAO: "TRATAMENTO",
+  ANTI_RISCO: "TRATAMENTO",
+  TRATAMENTO: "CORTE",
+  CORTE: "MONTAGEM",
+  GRAVACAO: "MONTAGEM",
+  MONTAGEM: "CONTROLE_QUALIDADE",
+  CONTROLE_QUALIDADE: "DISTRIBUICAO",
+  DISTRIBUICAO: "PRONTO",
+  FINANCEIRO: "PRONTO",
   PRONTO: "ENTREGUE",
+  RETRABALHO: "SEPARACAO",
 };
